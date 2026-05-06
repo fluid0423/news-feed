@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "news-feed",
+    "name": "오늘의 뉴스",
     "slug": "news-feed",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,7 +13,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +21,12 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "kr.inome.newsfeed"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "owner": "inome",
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }
