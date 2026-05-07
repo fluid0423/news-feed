@@ -1,4 +1,4 @@
-import Parser from 'rss-parser';
+import { XMLParser } from 'fast-xml-parser';
 
 export interface NewsItem {
   id: string;
@@ -9,25 +9,50 @@ export interface NewsItem {
   thumbnail?: string;
 }
 
-const parser = new Parser({
-  customFields: {
-    item: [['media:thumbnail', 'mediaThumbnail'], ['media:content', 'mediaContent']],
-  },
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  isArray: (name) => name === 'item' || name === 'entry',
 });
+
+function extractLink(item: any): string {
+  if (typeof item.link === 'string') return item.link;
+  if (item.link?.['@_href']) return item.link['@_href'];
+  if (Array.isArray(item.link)) {
+    const alt = item.link.find((l: any) => l['@_rel'] === 'alternate' || !l['@_rel']);
+    return alt?.['@_href'] ?? '';
+  }
+  return '';
+}
+
+function extractThumbnail(item: any): string | undefined {
+  return (
+    item['media:thumbnail']?.['@_url'] ??
+    item['media:content']?.['@_url'] ??
+    item.enclosure?.['@_url'] ??
+    undefined
+  );
+}
 
 export async function fetchFeed(url: string, sourceName: string): Promise<NewsItem[]> {
   try {
-    const feed = await parser.parseURL(url);
-    return (feed.items ?? []).slice(0, 20).map((item, index) => ({
-      id: `${sourceName}-${index}-${item.link ?? ''}`,
-      title: item.title ?? '',
-      link: item.link ?? '',
-      pubDate: item.pubDate ?? item.isoDate ?? '',
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const parsed = xmlParser.parse(xml);
+
+    const channel = parsed?.rss?.channel ?? parsed?.feed;
+    if (!channel) return [];
+
+    const rawItems: any[] = channel.item ?? channel.entry ?? [];
+
+    return rawItems.slice(0, 20).map((item, index) => ({
+      id: `${sourceName}-${index}-${extractLink(item)}`,
+      title: typeof item.title === 'string' ? item.title : item.title?.['#text'] ?? '',
+      link: extractLink(item),
+      pubDate: item.pubDate ?? item.updated ?? item.published ?? '',
       source: sourceName,
-      thumbnail:
-        (item as any).mediaThumbnail?.$.url ??
-        (item as any).mediaContent?.$.url ??
-        undefined,
+      thumbnail: extractThumbnail(item),
     }));
   } catch {
     return [];

@@ -27,6 +27,11 @@
     "owner": "inome",
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fa8d23e4-fe4d-4228-8043-7f35d028fe8e"
+      }
+    }
   }
 }
